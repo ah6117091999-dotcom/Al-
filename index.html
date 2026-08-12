@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Student Job Assistant">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Allowance Assistant</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#667085;--primary:#2563eb;--green:#16a34a;--red:#dc2626;--border:#dbe2ea}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(135deg,#1d4ed8,#4f46e5);color:white;padding:24px 16px}
+header h1{margin:0 0 6px;font-size:26px}header p{margin:0;opacity:.9}
+nav{display:flex;gap:8px;overflow:auto;background:#fff;padding:10px;position:sticky;top:0;z-index:5;box-shadow:0 2px 8px #0001}
+nav button{border:0;background:#eef2ff;color:#243b7a;padding:10px 14px;border-radius:10px;white-space:nowrap;cursor:pointer}
+nav button.active{background:var(--primary);color:white}
+main{max-width:1100px;margin:auto;padding:18px}
+.tab{display:none}.tab.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 4px 14px #00000008}
+h2,h3{margin-top:0}.metric{font-size:28px;font-weight:700;margin:8px 0}.muted{color:var(--muted);font-size:13px}
+form{display:grid;gap:10px}label{font-size:13px;font-weight:700}input,select,textarea{width:100%;padding:11px;border:1px solid var(--border);border-radius:9px;font:inherit}
+button.primary,button.danger,button.secondary{border:0;border-radius:9px;padding:10px 13px;cursor:pointer}
+button.primary{background:var(--primary);color:white}button.danger{background:#fee2e2;color:#991b1b}button.secondary{background:#eef2f7;color:#344054}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.spacer{height:10px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:9px;border-bottom:1px solid var(--border)}th{background:#f8fafc}
+.income{color:var(--green);font-weight:700}.expense{color:var(--red);font-weight:700}
+.schedule-item{padding:12px;border-left:4px solid var(--primary);background:#f8fafc;border-radius:8px;margin:8px 0}
+.schedule-item.job{border-left-color:#f59e0b}.schedule-item.study{border-left-color:#16a34a}
+.alert{padding:11px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;margin-bottom:12px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:25px}
+.small{font-size:12px}.check{display:flex;gap:8px;align-items:center}.check input{width:auto}
+canvas{max-width:100%}
+</style>
+</head>
+<body>
+<header>
+<h1>📚 Allowance Assistant</h1>
+<p>Study planning • Bus-counter work • Income & expense tracking • Digital-wallet notes</p>
+</header>
+
+<nav id="nav">
+<button class="active" data-tab="dashboard">Dashboard</button>
+<button data-tab="study">Study Schedule</button>
+<button data-tab="job">Job Schedule</button>
+<button data-tab="money">Money</button>
+<button data-tab="wallets">Wallets</button>
+<button data-tab="settings">Settings & Backup</button>
+</nav>
+
+<main>
+<section id="dashboard" class="tab active">
+<div class="grid">
+<div class="card"><div class="muted">This month's income</div><div id="dashIncome" class="metric income">৳0</div></div>
+<div class="card"><div class="muted">This month's expenses</div><div id="dashExpense" class="metric expense">৳0</div></div>
+<div class="card"><div class="muted">Balance / net</div><div id="dashNet" class="metric">৳0</div></div>
+<div class="card"><div class="muted">Today's scheduled hours</div><div id="dashHours" class="metric">0h</div></div>
+</div>
+<div class="spacer"></div>
+<div class="grid">
+<div class="card"><h3>Today's plan</h3><div id="todayPlan"></div></div>
+<div class="card"><h3>Quick add</h3>
+<div class="row">
+<button class="primary" onclick="openTab('study')">+ Schedule</button>
+<button class="primary" onclick="openTab('money')">+ Money</button>
+<button class="secondary" onclick="openTab('wallets')">Wallets</button>
+</div>
+<p class="muted">All information is stored locally in this browser.</p>
+</div>
+</div>
+</section>
+
+<section id="study" class="tab">
+<div class="grid">
+<div class="card">
+<h2>📚 Study Schedule</h2>
+<form id="studyForm">
+<label>Start date<input id="studyDate" type="date" required></label>
+<label>Schedule duration
+<div class="row">
+<select id="studyRepeatType">
+<option value="once">One day</option>
+<option value="daily">Every day</option>
+<option value="2days">Every 2 days</option>
+<option value="weekly">One week</option>
+<option value="2weeks">Two weeks</option>
+<option value="monthly">One month</option>
+<option value="2months">Two months</option>
+<option value="3months">Three months</option>
+<option value="4months">Four months</option>
+<option value="6months">Six months</option>
+<option value="year">One year</option>
+<option value="custom">Custom duration</option>
+</select>
+<input id="studyRepeatTypeValue" type="number" min="1" step="1" value="1" style="display:none;max-width:120px" aria-label="Study duration custom value">
+<select id="studyRepeatTypeUnit" style="display:none;max-width:120px" aria-label="Study duration custom unit">
+<option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months</option><option value="years">Years</option>
+</select>
+</div>
+</label>
+<label>Start time<input id="studyStart" type="time" required></label>
+<label>End time<input id="studyEnd" type="time"></label>
+<label>Session duration (optional)
+<div class="row"><input id="studyDuration" type="number" min="1" step="1" style="max-width:150px"><select id="studyDurationUnit" style="max-width:120px"><option value="minutes">Minutes</option><option value="hours">Hours</option></select></div>
+</label>
+<label>Subject / task<input id="studyTask" placeholder="e.g. Python, Mathematics, English" required></label>
+<label>Notes<textarea id="studyNotes" rows="2" placeholder="Optional"></textarea></label>
+<button class="primary">Add Study Session</button>
+</form>
+</div>
+<div class="card">
+<h2>📋 Ready Study Plans</h2>
+<p class="muted">Start with a prepared plan, then change any session you want.</p>
+<select id="studyTemplate">
+<option value="">Choose a study plan</option>
+<option value="light">Light — 1.5 hours/day</option>
+<option value="balanced">Balanced — 3 hours/day</option>
+<option value="exam">Exam Focus — 5 hours/day</option>
+<option value="custom">Custom template</option>
+</select>
+<div class="spacer"></div>
+<button class="secondary" onclick="applyStudyTemplate()">Load into Study Schedule</button>
+</div>
+<div class="card">
+<h2>Study Routine</h2>
+<form id="studyRoutineForm">
+<label>Usual start<input id="rStudyStart" type="time"></label>
+<label>Study duration
+<div class="row"><input id="rStudyValue" type="number" min="1" step="1" style="max-width:150px"><select id="rStudyUnit" style="max-width:120px"><option value="minutes">Minutes</option><option value="hours">Hours</option></select></div>
+</label>
+<button class="primary">Save Study Routine</button>
+</form>
+<div class="spacer"></div>
+<button class="secondary" onclick="generateStudyToday()">Generate today's study session</button>
+</div>
+</div>
+<div class="card" style="margin-top:14px">
+<div class="row"><h2 style="margin-right:auto">Study Sessions</h2><input id="studyFilter" type="date" onchange="renderStudy()" style="max-width:180px"></div>
+<div id="studyList"></div>
+</div>
+</section>
+
+<section id="job" class="tab">
+<div class="grid">
+<div class="card">
+<h2>🚌 Job Schedule</h2>
+<form id="jobForm">
+<label>Start date<input id="jobDate" type="date" required></label>
+<label>Schedule duration
+<div class="row">
+<select id="jobRepeatType">
+<option value="once">One day</option>
+<option value="daily">Every day</option>
+<option value="2days">Every 2 days</option>
+<option value="weekly">One week</option>
+<option value="2weeks">Two weeks</option>
+<option value="monthly">One month</option>
+<option value="2months">Two months</option>
+<option value="3months">Three months</option>
+<option value="4months">Four months</option>
+<option value="6months">Six months</option>
+<option value="year">One year</option>
+<option value="custom">Custom duration</option>
+</select>
+<input id="jobRepeatTypeValue" type="number" min="1" step="1" value="1" style="display:none;max-width:120px" aria-label="Job duration custom value">
+<select id="jobRepeatTypeUnit" style="display:none;max-width:120px" aria-label="Job duration custom unit">
+<option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months</option><option value="years">Years</option>
+</select>
+</div>
+</label>
+<label>Start time<input id="jobStart" type="time" required></label>
+<label>End time<input id="jobEnd" type="time"></label>
+<label>Shift duration (optional)
+<div class="row"><input id="jobDuration" type="number" min="1" step="1" style="max-width:150px"><select id="jobDurationUnit" style="max-width:120px"><option value="minutes">Minutes</option><option value="hours">Hours</option></select></div>
+</label>
+<label>Job / shift<input id="jobTask" value="Bus stand counter shift" required></label>
+<label>Notes<textarea id="jobNotes" rows="2" placeholder="Optional"></textarea></label>
+<button class="primary">Add Job Shift</button>
+</form>
+</div>
+<div class="card">
+<h2>📋 Ready Job Plans</h2>
+<p class="muted">Choose a prepared shift pattern, then adjust it when needed.</p>
+<select id="jobTemplate">
+<option value="">Choose a job plan</option>
+<option value="morning">Morning — 8:00 AM–2:00 PM</option>
+<option value="afternoon">Afternoon — 2:00 PM–8:00 PM</option>
+<option value="full">Full Shift — 8:00 AM–4:00 PM</option>
+<option value="custom">Custom template</option>
+</select>
+<div class="spacer"></div>
+<button class="secondary" onclick="applyJobTemplate()">Load into Job Schedule</button>
+</div>
+<div class="card">
+<h2>Job Routine</h2>
+<form id="jobRoutineForm">
+<label>Usual start<input id="rJobStart" type="time"></label>
+<label>Job duration
+<div class="row"><input id="rJobValue" type="number" min="1" step="1" style="max-width:150px"><select id="rJobUnit" style="max-width:120px"><option value="minutes">Minutes</option><option value="hours">Hours</option></select></div>
+</label>
+<button class="primary">Save Job Routine</button>
+</form>
+<div class="spacer"></div>
+<button class="secondary" onclick="generateJobToday()">Generate today's job shift</button>
+</div>
+</div>
+<div class="card" style="margin-top:14px">
+<div class="row"><h2 style="margin-right:auto">Job Shifts</h2><input id="jobFilter" type="date" onchange="renderJob()" style="max-width:180px"></div>
+<div id="jobList"></div>
+</div>
+</section>
+
+<section id="money" class="tab">
+<div class="grid">
+<div class="card">
+<h2>Add income / expense</h2>
+<form id="moneyForm">
+<label>Date<input id="mDate" type="date" required></label>
+<label>Type<select id="mType"><option value="income">Income</option><option value="expense">Expense</option></select></label>
+<label>Amount (৳)<input id="mAmount" type="number" min="0" step="0.01" required></label>
+<label>Category
+<select id="mCategory" required>
+<option value="">Select a category</option>
+<optgroup label="Income">
+<option>Part-time job salary</option>
+<option>Overtime / extra shift</option>
+<option>Freelance income</option>
+<option>Business income</option>
+<option>Family support</option>
+<option>Gift / received money</option>
+<option>Refund</option>
+<option>Other income</option>
+<option>Custom income</option>
+</optgroup>
+<optgroup label="Expenses">
+<option>Food</option>
+<option>Transport</option>
+<option>Education / study</option>
+<option>Mobile / internet</option>
+<option>Personal</option>
+<option>Shopping</option>
+<option>Medical</option>
+<option>Rent / housing</option>
+<option>Utilities / bills</option>
+<option>Bank / wallet fee</option>
+<option>Loan / debt payment</option>
+<option>Other expense</option>
+<option>Custom expense</option>
+</optgroup>
+<optgroup label="Money Movement">
+<option>Cash deposit</option>
+<option>Cash withdrawal</option>
+<option>Bank transfer</option>
+<option>bKash transfer</option>
+<option>Nagad transfer</option>
+<option>Rocket transfer</option>
+<option>Other transfer</option>
+<option>Custom transfer</option>
+</optgroup>
+</select></label>
+<label id="customCategoryWrap" style="display:none">Custom category<input id="mCustomCategory" placeholder="Enter your own category"></label>
+<label>Method<select id="mMethod"><option>Cash</option><option>bKash</option><option>Nagad</option><option>Rocket</option><option>Bank</option><option>Other</option></select></label>
+<label>Note<input id="mNote" placeholder="Optional"></label>
+<button class="primary">Save transaction</button>
+</form>
+</div>
+<div class="card">
+<h2>Monthly summary</h2>
+<label>Month<input id="monthFilter" type="month" onchange="renderMoney()"></label>
+<div class="spacer"></div>
+<div>Income: <b id="sumIncome" class="income">৳0</b></div>
+<div>Expense: <b id="sumExpense" class="expense">৳0</b></div>
+<div>Net: <b id="sumNet">৳0</b></div>
+</div>
+</div>
+<div class="card" style="margin-top:14px"><h2>Transactions</h2><div style="overflow:auto"><table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Category</th><th>Method</th><th>Note</th><th></th></tr></thead><tbody id="moneyList"></tbody></table></div></div>
+</section>
+
+<section id="wallets" class="tab">
+<div class="alert"><b>Privacy:</b> This local wallet tracker does not connect to bKash, Nagad, Rocket or your bank. Never store PINs, passwords, OTPs or CVVs.</div>
+
+<div class="grid">
+<div class="card">
+<h2>💳 Add Account</h2>
+<form id="walletForm">
+<label>Account type<select id="wService"><option>Cash</option><option>bKash</option><option>Nagad</option><option>Rocket</option><option>Bank</option><option>Other</option></select></label>
+<label>Account name<input id="wLabel" placeholder="e.g. Personal bKash" required></label>
+<label>Opening balance (৳)<input id="wOpening" type="number" min="0" step="0.01" value="0" required></label>
+<label>Masked number / account hint<input id="wNumber" placeholder="e.g. ****1234"></label>
+<button class="primary">Add Account</button>
+</form>
+</div>
+
+<div class="card">
+<h2>↔️ Record Money Movement</h2>
+<form id="walletTxnForm">
+<label>Account<select id="wtAccount" required></select></label>
+<label>Date<input id="wtDate" type="date" required></label>
+<label>Movement
+<select id="wtType">
+<option value="deposit">Cash in / Deposit</option>
+<option value="withdrawal">Cash out / Withdrawal</option>
+<option value="expense">Expense from account</option>
+<option value="income">Income to account</option>
+</select>
+</label>
+<label>Amount (৳)<input id="wtAmount" type="number" min="0.01" step="0.01" required></label>
+<label>Note<input id="wtNote" placeholder="e.g. Bus fare, salary, food"></label>
+<button class="primary">Record Movement</button>
+</form>
+</div>
+</div>
+
+<div class="card" style="margin-top:14px">
+<h2>📊 Account Balance Table</h2>
+<p class="muted">Balance = opening balance + money in − money out.</p>
+<div style="overflow:auto">
+<table>
+<thead><tr><th>Account</th><th>Type</th><th>Opening</th><th>Money In</th><th>Money Out</th><th>Expenses</th><th>Current Balance</th><th></th></tr></thead>
+<tbody id="walletTable"></tbody>
+</table>
+</div>
+</div>
+
+<div class="card" style="margin-top:14px">
+<h2>📜 Account Transactions</h2>
+<div class="row">
+<label style="flex:1;min-width:180px">Filter account<select id="walletFilter"><option value="all">All accounts</option></select></label>
+<label style="flex:1;min-width:180px">Filter month<input id="walletMonth" type="month"></label>
+</div>
+<div class="spacer"></div>
+<div style="overflow:auto">
+<table>
+<thead><tr><th>Date</th><th>Account</th><th>Movement</th><th>Amount</th><th>Note</th><th></th></tr></thead>
+<tbody id="walletTxnTable"></tbody>
+</table>
+</div>
+</div>
+</section>
+
+<section id="settings" class="tab">
+<div class="grid">
+<div class="card">
+<h2>Your profile</h2>
+<form id="profileForm">
+<label>Name<input id="pName" placeholder="Your name"></label>
+<label>Study goal<input id="pGoal" placeholder="e.g. 3 hours/day"></label>
+<label>Job location / role<input id="pJob" placeholder="Bus stand counter staff"></label>
+<button class="primary">Save profile</button>
+</form>
+</div>
+<div class="card">
+<h2>📱 App & Storage</h2>
+<p class="muted">Your data is kept on this phone in persistent browser storage. It is not removed just because you close the app.</p>
+<div class="row"><button class="primary" id="installAppBtn" style="display:none">Install Allowance Assistant</button><button class="secondary" id="storageStatusBtn" type="button">Check storage protection</button></div>
+<div id="storageStatus" class="muted" style="margin-top:8px"></div>
+</div>
+<div class="card">
+<h2>Backup</h2>
+<p>Export your data as a JSON file. Keep it somewhere safe. Importing replaces the current local data.</p>
+<div class="row"><button class="primary" onclick="exportData()">Export backup</button><label class="secondary" style="cursor:pointer">Import backup<input id="importFile" type="file" accept=".json" hidden onchange="importData(event)"></label></div>
+<div class="spacer"></div><button class="danger" onclick="clearAll()">Delete all local data</button>
+</div>
+</div>
+</section>
+</main>
+<footer>Allowance Assistant • Installable app • Data is stored locally on this device and can be backed up anytime.</footer>
+
+<script>
+const KEY='allowanceAssistantV2';
+const OLD_KEY='studentJobAssistantV1';
+let db=JSON.parse(localStorage.getItem(KEY)||'null')||JSON.parse(localStorage.getItem(OLD_KEY)||'null')||{profile:{},routine:{studyStart:'18:00',studyMin:90,jobStart:'09:00',jobMin:360},schedule:[],money:[],wallets:[],walletTransactions:[]};
+let dbReady=false, saveTimer=null;
+const today=()=>new Date().toISOString().slice(0,10);
+
+const IDB_NAME='AllowanceAssistantDB';
+const IDB_STORE='app';
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const r=indexedDB.open(IDB_NAME,1);
+    r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(IDB_STORE))r.result.createObjectStore(IDB_STORE);};
+    r.onsuccess=()=>resolve(r.result);
+    r.onerror=()=>reject(r.error);
+  });
+}
+async function loadPersistentData(){
+  try{
+    const idb=await openDB();
+    const value=await new Promise((resolve,reject)=>{
+      const tx=idb.transaction(IDB_STORE,'readonly'), req=tx.objectStore(IDB_STORE).get('data');
+      req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
+    });
+    if(value) db=value;
+    else await persistNow();
+    dbReady=true;
+    try{
+      if(navigator.storage && navigator.storage.persist) await navigator.storage.persist();
+    }catch(_){}
+  }catch(_){
+    // Keep the app usable with localStorage if IndexedDB is unavailable.
+    dbReady=false;
+  }
+}
+async function persistNow(){
+  localStorage.setItem(KEY,JSON.stringify(db));
+  try{
+    const idb=await openDB();
+    await new Promise((resolve,reject)=>{
+      const tx=idb.transaction(IDB_STORE,'readwrite');
+      tx.objectStore(IDB_STORE).put(db,'data');
+      tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error);
+    });
+  }catch(_){}
+}
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(db));
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>persistNow(),50);
+}
+function money(n){return '৳'+Number(n||0).toLocaleString('en-BD',{minimumFractionDigits:0,maximumFractionDigits:2});}
+function openTab(id){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelector(`nav button[data-tab="${id}"]`).classList.add('active');renderAll();}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
+
+function durationToMinutes(value,unit){let n=Number(value);return unit==='hours'?n*60:n;}
+function getEndTime(endId,durationId,unitId,startId){
+ const end=document.getElementById(endId).value;
+ if(end) return end;
+ const v=document.getElementById(durationId).value;
+ if(!v) return '';
+ return addMin(document.getElementById(startId).value,durationToMinutes(v,document.getElementById(unitId).value));
+}
+function mins(a,b){let [h1,m1]=a.split(':').map(Number),[h2,m2]=b.split(':').map(Number);let x=h1*60+m1,y=h2*60+m2;if(y<x)y+=1440;return y-x}
+function fmtTime(t){let [h,m]=t.split(':').map(Number);let ap=h>=12?'PM':'AM';h=h%12||12;return `${h}:${String(m).padStart(2,'0')} ${ap}`}
+function datePlusDays(dateStr,days){
+ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+days);
+ return d.toISOString().slice(0,10);
+}
+function dateEndForRepeat(start,type){
+ if(type==='once') return start;
+ const d=new Date(start+'T00:00:00');
+ if(type==='daily') d.setDate(d.getDate());
+ if(type==='weekly') d.setDate(d.getDate()+6);
+ if(type==='monthly') d.setMonth(d.getMonth()+1); d.setDate(d.getDate()-1);
+ return d.toISOString().slice(0,10);
+}
+function generateDates(start,type,scope){
+ if(type==='once') return [start];
+ let out=[], d=new Date(start+'T00:00:00');
+ let end=new Date(start+'T00:00:00');
+ if(type==='daily') end.setDate(end.getDate());
+ else if(type==='2days') end.setDate(end.getDate()+1);
+ else if(type==='weekly') end.setDate(end.getDate()+6);
+ else if(type==='2weeks') end.setDate(end.getDate()+13);
+ else if(type==='monthly') end.setMonth(end.getMonth()+1); 
+ else if(type==='2months') end.setMonth(end.getMonth()+2);
+ else if(type==='3months') end.setMonth(end.getMonth()+3);
+ else if(type==='4months') end.setMonth(end.getMonth()+4);
+ else if(type==='6months') end.setMonth(end.getMonth()+6);
+ else if(type==='year') end.setFullYear(end.getFullYear()+1);
+ else if(type==='custom'){
+   const value=Number(scope==='study'?document.getElementById('studyRepeatTypeValue').value:document.getElementById('jobRepeatTypeValue').value)||1;
+   const unit=scope==='study'?document.getElementById('studyRepeatTypeUnit').value:document.getElementById('jobRepeatTypeUnit').value;
+   if(unit==='days') end.setDate(end.getDate()+value-1);
+   if(unit==='weeks') end.setDate(end.getDate()+value*7-1);
+   if(unit==='months'){end.setMonth(end.getMonth()+value);end.setDate(end.getDate()-1);}
+   if(unit==='years') end.setFullYear(end.getFullYear()+value);
+ } else return [start];
+ if(type!=='daily' && type!=='custom') end.setDate(end.getDate()-1);
+ if(type==='custom') end.setDate(end.getDate()-1);
+ if(type==='daily') end=new Date(start+'T00:00:00');
+ while(d<=end){out.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1);}
+ return out;
+}
+function setupRepeatControls(selectId){
+ const s=document.getElementById(selectId),v=document.getElementById(selectId+'Value'),u=document.getElementById(selectId+'Unit');
+ s.addEventListener('change',()=>{const c=s.value==='custom';v.style.display=c?'block':'none';u.style.display=c?'block':'none';});
+}
+function applyStudyTemplate(){
+ const v=document.getElementById('studyTemplate').value;
+ const plans={light:['18:00',90],balanced:['17:00',180],exam:['16:00',300]};
+ if(plans[v]){rStudyStart.value=plans[v][0];rStudyValue.value=plans[v][1];rStudyUnit.value='minutes';}
+ if(v==='custom') alert('Choose your own start time and duration below.');
+ document.getElementById('studyTemplate').value='';
+}
+function applyJobTemplate(){
+ const v=document.getElementById('jobTemplate').value;
+ const plans={morning:['08:00',360],afternoon:['14:00',360],full:['08:00',480]};
+ if(plans[v]){rJobStart.value=plans[v][0];rJobValue.value=plans[v][1]/60;rJobUnit.value='hours';}
+ if(v==='custom') alert('Choose your own start time and duration below.');
+ document.getElementById('jobTemplate').value='';
+}
+setupRepeatControls('studyRepeatType');
+setupRepeatControls('jobRepeatType');
+function renderStudy(){
+ let filter=document.getElementById('studyFilter').value||today();
+ let arr=db.schedule.filter(x=>x.date===filter && x.type==='study').sort((a,b)=>a.start.localeCompare(b.start));
+ document.getElementById('studyList').innerHTML=arr.length?arr.map(x=>`<div class="schedule-item study">
+ <div class="row"><b>${fmtTime(x.start)} – ${fmtTime(x.end)}</b><span class="muted">STUDY</span><button class="danger" style="margin-left:auto" onclick="delSchedule('${x.id}')">Delete</button></div>
+ <div>${esc(x.task)}</div><div class="muted">${esc(x.notes||'')} • ${Math.round(mins(x.start,x.end)/60*10)/10}h</div></div>`).join(''):'<p class="muted">No study sessions for this date.</p>';
+}
+function renderJob(){
+ let filter=document.getElementById('jobFilter').value||today();
+ let arr=db.schedule.filter(x=>x.date===filter && x.type==='job').sort((a,b)=>a.start.localeCompare(b.start));
+ document.getElementById('jobList').innerHTML=arr.length?arr.map(x=>`<div class="schedule-item job">
+ <div class="row"><b>${fmtTime(x.start)} – ${fmtTime(x.end)}</b><span class="muted">JOB</span><button class="danger" style="margin-left:auto" onclick="delSchedule('${x.id}')">Delete</button></div>
+ <div>${esc(x.task)}</div><div class="muted">${esc(x.notes||'')} • ${Math.round(mins(x.start,x.end)/60*10)/10}h</div></div>`).join(''):'<p class="muted">No job shifts for this date.</p>';
+}
+function renderSchedule(){
+ let t=db.schedule.filter(x=>x.date===today()).sort((a,b)=>a.start.localeCompare(b.start));
+ document.getElementById('todayPlan').innerHTML=t.length?t.map(x=>`<div class="schedule-item ${x.type}"><b>${fmtTime(x.start)}–${fmtTime(x.end)}</b> · ${esc(x.task)}</div>`).join(''):'<p class="muted">Nothing scheduled today.</p>';
+ document.getElementById('dashHours').textContent=Math.round(t.reduce((s,x)=>s+mins(x.start,x.end),0)/60*10)/10+'h';
+ renderStudy(); renderJob();
+}
+function delSchedule(id){db.schedule=db.schedule.filter(x=>x.id!==id);save();renderAll();}
+document.getElementById('studyForm').onsubmit=e=>{
+ e.preventDefault();
+ const studyEndTime=getEndTime('studyEnd','studyDuration','studyDurationUnit','studyStart');
+ if(!studyStart.value||!studyEndTime){alert('Enter an end time or a duration.');return;}
+ const dates=generateDates(studyDate.value,studyRepeatType.value,'study');
+ dates.forEach(d=>db.schedule.push({id:crypto.randomUUID(),date:d,start:studyStart.value,end:studyEndTime,type:'study',task:studyTask.value,notes:studyNotes.value,series:'study-'+crypto.randomUUID()}));
+ save();e.target.reset();studyDate.value=today();studyRepeatType.value='once';renderAll();
+}
+document.getElementById('jobForm').onsubmit=e=>{
+ e.preventDefault();
+ const jobEndTime=getEndTime('jobEnd','jobDuration','jobDurationUnit','jobStart');
+ if(!jobStart.value||!jobEndTime){alert('Enter an end time or a duration.');return;}
+ const dates=generateDates(jobDate.value,jobRepeatType.value,'job');
+ dates.forEach(d=>db.schedule.push({id:crypto.randomUUID(),date:d,start:jobStart.value,end:jobEndTime,type:'job',task:jobTask.value,notes:jobNotes.value,series:'job-'+crypto.randomUUID()}));
+ save();e.target.reset();jobDate.value=today();jobRepeatType.value='once';jobTask.value='Bus stand counter shift';renderAll();
+}
+document.getElementById('studyRoutineForm').onsubmit=e=>{
+ e.preventDefault();db.routine.studyStart=rStudyStart.value;db.routine.studyMin=durationToMinutes(rStudyValue.value,rStudyUnit.value);save();alert('Study routine saved.');
+}
+document.getElementById('jobRoutineForm').onsubmit=e=>{
+ e.preventDefault();db.routine.jobStart=rJobStart.value;db.routine.jobMin=durationToMinutes(rJobValue.value,rJobUnit.value);save();alert('Job routine saved.');
+}
+function generateStudyToday(){
+ let r=db.routine,d=today();
+ db.schedule=db.schedule.filter(x=>!(x.date===d && x.type==='study'));
+ db.schedule.push({id:crypto.randomUUID(),date:d,start:r.studyStart,end:addMin(r.studyStart,r.studyMin),type:'study',task:'Study session',notes:'Generated from study routine'});
+ save();document.getElementById('studyFilter').value=d;renderAll();alert("Today's study session generated.");
+}
+function generateJobToday(){
+ let r=db.routine,d=today();
+ db.schedule=db.schedule.filter(x=>!(x.date===d && x.type==='job'));
+ db.schedule.push({id:crypto.randomUUID(),date:d,start:r.jobStart,end:addMin(r.jobStart,r.jobMin),type:'job',task:'Bus stand counter shift',notes:'Generated from job routine'});
+ save();document.getElementById('jobFilter').value=d;renderAll();alert("Today's job shift generated.");
+}
+
+document.getElementById('mCategory').onchange=function(){
+ const custom=this.value.toLowerCase().startsWith('custom');
+ document.getElementById('customCategoryWrap').style.display=custom?'block':'none';
+ document.getElementById('mCustomCategory').required=custom;
+};
+document.getElementById('moneyForm').onsubmit=e=>{e.preventDefault();db.money.push({id:crypto.randomUUID(),date:mDate.value,type:mType.value,amount:+mAmount.value,category:(mCategory.value.toLowerCase().startsWith('custom')?(mCustomCategory.value.trim()||mCategory.value):mCategory.value),method:mMethod.value,note:mNote.value});save();e.target.reset();mDate.value=today();customCategoryWrap.style.display='none';mCustomCategory.required=false;renderAll();}
+function renderMoney(){
+ let month=document.getElementById('monthFilter').value||today().slice(0,7);
+ let arr=db.money.filter(x=>x.date.startsWith(month)).sort((a,b)=>b.date.localeCompare(a.date));
+ let inc=arr.filter(x=>x.type==='income').reduce((s,x)=>s+x.amount,0),exp=arr.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);
+ sumIncome.textContent=money(inc);sumExpense.textContent=money(exp);sumNet.textContent=money(inc-exp);
+ moneyList.innerHTML=arr.length?arr.map(x=>`<tr><td>${x.date}</td><td class="${x.type}">${x.type}</td><td>${money(x.amount)}</td><td>${esc(x.category)}</td><td>${esc(x.method)}</td><td>${esc(x.note||'')}</td><td><button class="danger" onclick="delMoney('${x.id}')">×</button></td></tr>`).join(''):'<tr><td colspan="7" class="muted">No transactions.</td></tr>';
+ let all=db.money.filter(x=>x.date.startsWith(today().slice(0,7))),ai=all.filter(x=>x.type==='income').reduce((s,x)=>s+x.amount,0),ae=all.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);
+ dashIncome.textContent=money(ai);dashExpense.textContent=money(ae);dashNet.textContent=money(ai-ae);
+}
+function delMoney(id){db.money=db.money.filter(x=>x.id!==id);save();renderAll();}
+document.getElementById('walletForm').onsubmit=e=>{
+ e.preventDefault();
+ db.wallets.push({id:crypto.randomUUID(),service:wService.value,label:wLabel.value,number:wNumber.value,opening:+wOpening.value});
+ save();e.target.reset();renderWallets();renderWalletSelectors();alert('Account added.');
+}
+document.getElementById('walletTxnForm').onsubmit=e=>{
+ e.preventDefault();
+ const account=db.wallets.find(x=>x.id===wtAccount.value);
+ if(!account){alert('Please add an account first.');return;}
+ db.walletTransactions=db.walletTransactions||[];
+ db.walletTransactions.push({id:crypto.randomUUID(),accountId:wtAccount.value,date:wtDate.value,type:wtType.value,amount:+wtAmount.value,note:wtNote.value});
+ save();e.target.reset();wtDate.value=today();renderWallets();renderWalletSelectors();alert('Money movement recorded.');
+}
+function walletStats(a){
+ const tx=(db.walletTransactions||[]).filter(x=>x.accountId===a.id);
+ const incoming=tx.filter(x=>x.type==='deposit'||x.type==='income').reduce((s,x)=>s+x.amount,0);
+ const outgoing=tx.filter(x=>x.type==='withdrawal'||x.type==='expense').reduce((s,x)=>s+x.amount,0);
+ const expenses=tx.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);
+ return {incoming,outgoing,expenses,balance:(+a.opening||0)+incoming-outgoing};
+}
+function renderWallets(){
+ const tx=db.walletTransactions||[];
+ document.getElementById('walletTable').innerHTML=db.wallets.length?db.wallets.map(a=>{
+   const s=walletStats(a);
+   return `<tr><td><b>${esc(a.label)}</b><div class="muted">${esc(a.number||'')}</div></td><td>${esc(a.service)}</td><td>${money(a.opening)}</td><td class="income">${money(s.incoming)}</td><td class="expense">${money(s.outgoing)}</td><td class="expense">${money(s.expenses)}</td><td><b>${money(s.balance)}</b></td><td><button class="danger" onclick="deleteWallet('${a.id}')">Delete</button></td></tr>`;
+ }).join(''):'<tr><td colspan="8" class="muted">No accounts added yet.</td></tr>';
+
+ const filter=document.getElementById('walletFilter').value||'all';
+ const month=document.getElementById('walletMonth').value||'';
+ const rows=tx.filter(x=>(filter==='all'||x.accountId===filter)&&(!month||x.date.startsWith(month))).sort((a,b)=>b.date.localeCompare(a.date));
+ document.getElementById('walletTxnTable').innerHTML=rows.length?rows.map(x=>{
+   const a=db.wallets.find(y=>y.id===x.accountId);
+   const label=x.type==='deposit'||x.type==='income'?'Money In':'Money Out';
+   return `<tr><td>${x.date}</td><td>${esc(a?a.label:'Unknown')}</td><td class="${label==='Money In'?'income':'expense'}">${label} · ${esc(x.type)}</td><td class="${label==='Money In'?'income':'expense'}">${label==='Money In'?'+':'−'}${money(x.amount)}</td><td>${esc(x.note||'')}</td><td><button class="danger" onclick="deleteWalletTxn('${x.id}')">×</button></td></tr>`;
+ }).join(''):'<tr><td colspan="6" class="muted">No wallet transactions.</td></tr>';
+}
+function renderWalletSelectors(){
+ const current=document.getElementById('wtAccount').value;
+ const filter=document.getElementById('walletFilter').value;
+ document.getElementById('wtAccount').innerHTML=db.wallets.map(a=>`<option value="${a.id}">${esc(a.label)} — ${esc(a.service)}</option>`).join('');
+ document.getElementById('walletFilter').innerHTML='<option value="all">All accounts</option>'+db.wallets.map(a=>`<option value="${a.id}">${esc(a.label)}</option>`).join('');
+ if(db.wallets.some(a=>a.id===current)) wtAccount.value=current;
+ if(filter==='all'||db.wallets.some(a=>a.id===filter)) walletFilter.value=filter;
+}
+function deleteWallet(id){
+ if(!confirm('Delete this account and its recorded transactions?'))return;
+ db.wallets=db.wallets.filter(x=>x.id!==id);
+ db.walletTransactions=(db.walletTransactions||[]).filter(x=>x.accountId!==id);
+ save();renderWallets();renderWalletSelectors();
+}
+function deleteWalletTxn(id){
+ db.walletTransactions=(db.walletTransactions||[]).filter(x=>x.id!==id);
+ save();renderWallets();
+}
+document.getElementById('walletFilter').onchange=renderWallets;
+document.getElementById('walletMonth').onchange=renderWallets;
+
+document.getElementById('profileForm').onsubmit=e=>{e.preventDefault();db.profile={name:pName.value,goal:pGoal.value,job:pJob.value};save();alert('Profile saved.');}
+function exportData(){let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='student-job-assistant-backup.json';a.click();URL.revokeObjectURL(a.href);}
+function importData(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.schedule||!x.money)throw 0;db=x;save();renderAll();alert('Backup imported.')}catch(_){alert('Invalid backup file.')}};r.readAsText(f);}
+function clearAll(){if(confirm('Delete all local data? This cannot be undone unless you have a backup.')){localStorage.removeItem(KEY);location.reload();}}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+async function load(){
+ studyDate.value=today();jobDate.value=today();mDate.value=today();monthFilter.value=today().slice(0,7);studyFilter.value=today();jobFilter.value=today();wtDate.value=today();walletMonth.value=today().slice(0,7);
+ rStudyStart.value=db.routine.studyStart;
+ if(db.routine.studyMin%60===0){rStudyValue.value=db.routine.studyMin/60;rStudyUnit.value='hours';}else{rStudyValue.value=db.routine.studyMin;rStudyUnit.value='minutes';}
+ rJobStart.value=db.routine.jobStart;
+ if(db.routine.jobMin%60===0){rJobValue.value=db.routine.jobMin/60;rJobUnit.value='hours';}else{rJobValue.value=db.routine.jobMin;rJobUnit.value='minutes';}
+ pName.value=db.profile.name||'';pGoal.value=db.profile.goal||'';pJob.value=db.profile.job||'';
+ renderAll();
+}
+function renderAll(){renderSchedule();renderMoney();renderWalletSelectors();renderWallets();}
+load();
+</script>
+
+<script>
+function updateStorageStatus(){
+  const el=document.getElementById('storageStatus');
+  if(!el) return;
+  if(navigator.storage && navigator.storage.persisted){
+    navigator.storage.persisted().then(p=>{
+      el.textContent=p
+        ? '✓ Persistent storage is enabled on this phone.'
+        : 'Storage is protected as much as the browser allows. Use Export backup before changing phones or clearing browser data.';
+    }).catch(()=>{el.textContent='Local storage is active on this phone.';});
+  }else{
+    el.textContent='Local storage is active on this phone.';
+  }
+}
+document.getElementById('storageStatusBtn')?.addEventListener('click', async ()=>{
+  try{
+    if(navigator.storage?.persist) await navigator.storage.persist();
+  }catch(_){}
+  updateStorageStatus();
+});
+window.addEventListener('load', updateStorageStatus);
+</script>
+
+<script>
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  const btn=document.getElementById('installAppBtn');
+  if(btn) btn.style.display='inline-block';
+});
+document.getElementById('installAppBtn')?.addEventListener('click',async()=>{
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt=null;
+  document.getElementById('installAppBtn').style.display='none';
+});
+window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;});
+if('serviceWorker' in navigator && location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
+</script>
+</body>
+</html>
