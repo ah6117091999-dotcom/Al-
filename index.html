@@ -36,8 +36,97 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 footer{text-align:center;color:var(--muted);font-size:12px;padding:25px}
 .small{font-size:12px}.check{display:flex;gap:8px;align-items:center}.check input{width:auto}
 canvas{max-width:100%}
+
+/* ===== MONSTER COMMAND CENTER: INTEGRATED THEME ===== */
+:root{
+ --bg:#070812;--card:rgba(16,19,32,.88);--text:#f4f6ff;--muted:#9aa3b8;
+ --primary:#a855f7;--primary2:#7c3aed;--green:#4ade80;--red:#fb7185;--border:rgba(255,255,255,.09);
+ --accent:#a855f7;--accent2:#7c3aed;--accentSoft:rgba(168,85,247,.16);
+}
+*{box-sizing:border-box}
+body{background:radial-gradient(circle at 8% 0%,var(--accentSoft),transparent 30%),radial-gradient(circle at 100% 12%,rgba(34,211,238,.055),transparent 28%),var(--bg)!important;color:var(--text)!important;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif!important;padding-bottom:86px}
+header{background:linear-gradient(135deg,rgba(25,20,45,.96),rgba(10,12,23,.96))!important;border-bottom:1px solid var(--border);box-shadow:0 12px 40px rgba(0,0,0,.28);position:relative;overflow:hidden}
+header:after{content:"";position:absolute;width:180px;height:180px;right:-50px;top:-80px;border-radius:50%;background:var(--accent);opacity:.13;filter:blur(20px)}
+header h1{font-size:clamp(24px,7vw,34px)!important;letter-spacing:-.02em}
+nav{background:rgba(9,11,20,.92)!important;border-bottom:1px solid var(--border)!important;backdrop-filter:blur(16px);position:sticky;top:0;z-index:30}
+nav button{color:var(--muted)!important;background:transparent!important;border:0!important;border-bottom:2px solid transparent!important}
+nav button.active{color:#fff!important;border-bottom-color:var(--accent)!important}
+.card{background:linear-gradient(145deg,var(--card),rgba(8,10,18,.9))!important;border:1px solid var(--border)!important;border-radius:20px!important;box-shadow:0 14px 40px rgba(0,0,0,.22)!important}
+button{border-radius:13px!important}
+button.primary,.primary{background:linear-gradient(135deg,var(--accent),var(--accent2))!important;border-color:transparent!important;box-shadow:0 0 22px var(--accentSoft)!important;color:#fff!important}
+button.secondary,.secondary{background:rgba(255,255,255,.045)!important;color:var(--text)!important;border:1px solid var(--border)!important}
+input,select,textarea{background:rgba(7,9,17,.82)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:12px!important}
+.metric{font-weight:850}
+.mcc-hero{padding:22px;border-radius:24px;margin-bottom:14px;background:linear-gradient(145deg,rgba(24,27,47,.96),rgba(10,12,22,.92));border:1px solid var(--border);position:relative;overflow:hidden}
+.mcc-hero:after{content:"";position:absolute;right:-45px;bottom:-100px;width:210px;height:210px;border-radius:50%;background:var(--accent);opacity:.11;filter:blur(22px)}
+.mcc-label{text-transform:uppercase;letter-spacing:.13em;font-size:.7rem;color:var(--muted)}
+.mcc-total{font-size:clamp(2.35rem,10vw,4.8rem);font-weight:900;line-height:1;margin:9px 0 5px}
+.mcc-sub{color:var(--muted)}
+.mcc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:16px}
+.mcc-account{padding:13px;border:1px solid var(--border);background:rgba(255,255,255,.025);border-radius:16px}
+.mcc-account strong{display:block;font-size:1.06rem;margin-top:4px}
+.mcc-intel-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;margin-bottom:14px}
+.mcc-core{display:flex;align-items:center;gap:14px}
+.mcc-orb{width:64px;height:64px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%,#fff,var(--accent) 22%,var(--accent2) 58%,transparent 72%);box-shadow:0 0 24px var(--accent),0 0 60px var(--accentSoft);animation:mccPulse 3.6s ease-in-out infinite}
+@keyframes mccPulse{0%,100%{transform:scale(1);opacity:.88}50%{transform:scale(1.06);opacity:1}}
+.mcc-status-title{font-weight:850;font-size:1.03rem}
+.mcc-status{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.mcc-chip{display:inline-flex;align-items:center;gap:5px;padding:7px 10px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,.035);font-size:.76rem;color:var(--muted)}
+.mcc-chip.ok{color:var(--green)}.mcc-chip.warn{color:#fbbf24}.mcc-chip.alert{color:var(--red)}
+.mcc-fin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mcc-fin{padding:12px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.025)}
+.mcc-fin .value{font-size:1.1rem;font-weight:850;margin-top:4px}
+.mcc-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.mcc-action{min-height:48px}
+.mcc-progress-row{display:grid;grid-template-columns:90px 1fr 46px;align-items:center;gap:9px;margin:10px 0}
+.mcc-bar{height:9px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+.mcc-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width .5s}
+.mcc-streak{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.025)}
+.mcc-timeline{display:grid;gap:8px}
+.mcc-timeline-card{display:flex;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--border);border-radius:15px;background:rgba(255,255,255,.025)}
+.mcc-time{min-width:68px;color:var(--accent);font-weight:800}
+.mcc-quick{position:fixed;right:17px;bottom:78px;width:58px;height:58px;border-radius:50%!important;z-index:45;font-size:1.5rem;background:linear-gradient(135deg,var(--accent),var(--accent2))!important;color:#fff!important;box-shadow:0 12px 32px rgba(0,0,0,.45),0 0 26px var(--accentSoft)!important}
+.mcc-sheet{position:fixed;right:17px;bottom:146px;width:min(260px,calc(100vw - 34px));display:none;z-index:46;padding:10px;border-radius:18px;background:rgba(12,14,25,.98);border:1px solid var(--border);box-shadow:0 20px 55px rgba(0,0,0,.5)}
+.mcc-sheet.show{display:grid;gap:8px}.mcc-sheet button{width:100%;text-align:left}
+.mcc-bottom{position:fixed;left:10px;right:10px;bottom:10px;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);padding:5px;background:rgba(9,11,20,.94);backdrop-filter:blur(18px);border:1px solid var(--border);border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.mcc-bottom button{border:0!important;background:transparent!important;color:var(--muted)!important;min-height:50px;padding:4px;font-size:.7rem}
+.mcc-bottom button.active{color:#fff!important;background:rgba(255,255,255,.05)!important}
+.mcc-focus-overlay{position:fixed;inset:0;background:rgba(4,5,10,.95);backdrop-filter:blur(16px);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+.mcc-focus-overlay.show{display:flex}
+.mcc-focus-box{width:min(520px,100%);text-align:center;padding:30px;border:1px solid var(--border);border-radius:28px;background:linear-gradient(145deg,rgba(20,24,40,.98),rgba(8,10,18,.98));box-shadow:0 25px 80px rgba(0,0,0,.6)}
+.mcc-focus-sub{color:var(--muted);text-transform:uppercase;letter-spacing:.15em;font-size:.72rem}
+.mcc-focus-time{font-size:clamp(3.8rem,16vw,7rem);font-weight:900;line-height:1;margin:18px 0;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent}
+.mcc-colors{display:flex;flex-wrap:wrap;gap:8px}.mcc-color{width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.35);cursor:pointer}.mcc-color.active{outline:3px solid rgba(255,255,255,.35);outline-offset:2px}
+@media(min-width:701px){.mcc-bottom,.mcc-quick,.mcc-sheet{display:none!important}}
+@media(max-width:700px){body{padding-bottom:82px}.mcc-intel-grid{grid-template-columns:1fr}.mcc-grid{grid-template-columns:1fr 1fr}.mcc-actions{grid-template-columns:1fr 1fr}.mcc-fin-grid{grid-template-columns:1fr 1fr}.mcc-progress-row{grid-template-columns:75px 1fr 42px}nav{display:none}}
 </style>
-</head>
+<style>
+/* Mobile navigation hardening: isolated from the original nav component. */
+.mcc-bottom{
+  position:fixed!important;
+  left:10px!important;right:10px!important;bottom:10px!important;top:auto!important;
+  width:auto!important;height:60px!important;min-height:60px!important;max-height:60px!important;
+  margin:0!important;padding:4px!important;
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  align-items:stretch!important;overflow:hidden!important;
+  box-sizing:border-box!important;z-index:1000!important;
+  flex:none!important;transform:none!important;
+}
+.mcc-bottom button{
+  width:auto!important;height:50px!important;min-height:50px!important;max-height:50px!important;
+  margin:0!important;padding:3px 2px!important;box-sizing:border-box!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  overflow:hidden!important;white-space:normal!important;line-height:1.15!important;
+}
+@media(max-width:700px){
+  .mcc-bottom{display:grid!important}
+  #nav{display:none!important}
+  body{overflow-x:hidden!important}
+}
+@media(min-width:701px){
+  .mcc-bottom,.mcc-quick,.mcc-sheet{display:none!important}
+}
+</style></head>
 <body>
 <div id="appLockScreen" style="display:none;position:fixed;inset:0;z-index:99999;background:var(--bg,#f4f7fb);align-items:center;justify-content:center;padding:24px">
   <div class="card" style="width:min(420px,100%);text-align:center">
@@ -70,6 +159,41 @@ wallet notes</p>
 
 <main>
 <section id="dashboard" class="tab active">
+<div class="mcc-hero">
+ <div class="mcc-label" id="mccGreeting">👹 Monster Command Center · Today</div>
+ <div class="mcc-total" id="mccTotal">৳0</div>
+ <div class="mcc-sub">Total cash across your tracked accounts</div>
+ <div class="mcc-grid" id="mccAccounts"></div>
+</div>
+<div class="mcc-intel-grid">
+ <div class="card">
+  <div class="mcc-core"><div class="mcc-orb"></div><div><div class="mcc-status-title" id="mccStatusTitle">SYSTEM STATUS · READY</div><div class="mcc-sub" id="mccStatusMessage">Your command center is standing by.</div></div></div>
+  <div class="mcc-status" id="mccStatusChips"></div>
+ </div>
+ <div class="card"><h3>📊 This Month</h3><div class="mcc-fin-grid">
+  <div class="mcc-fin"><span class="mcc-label">Income</span><div class="value" id="mccIncome">৳0</div></div>
+  <div class="mcc-fin"><span class="mcc-label">Expenses</span><div class="value" id="mccExpense">৳0</div></div>
+  <div class="mcc-fin"><span class="mcc-label">Transfers</span><div class="value" id="mccTransfers">৳0</div></div>
+ </div></div>
+</div>
+<div class="card">
+ <h3>⚡ Quick Actions</h3>
+ <div class="mcc-actions">
+  <button class="primary mcc-action" onclick="mccOpen('money')">💵 Income</button>
+  <button class="secondary mcc-action" onclick="mccOpen('money')">🏦 Deposit</button>
+  <button class="secondary mcc-action" onclick="mccOpen('money')">💸 Expense</button>
+  <button class="secondary mcc-action" onclick="mccOpen('wallets')">🔄 Transfer</button>
+ </div>
+</div>
+<div class="card">
+ <h3>🎯 Today's Progress</h3>
+ <div class="mcc-progress-row"><span>📚 Study</span><div class="mcc-bar"><i id="mccStudyBar"></i></div><b id="mccStudyPct">0%</b></div>
+ <div class="mcc-progress-row"><span>💼 Job</span><div class="mcc-bar"><i id="mccJobBar"></i></div><b id="mccJobPct">0%</b></div>
+ <div class="mcc-progress-row"><span>💰 Budget</span><div class="mcc-bar"><i id="mccBudgetBar"></i></div><b id="mccBudgetPct">0%</b></div>
+</div>
+<div class="card"><div class="mcc-streak"><div><div class="mcc-label">Momentum</div><strong id="mccStreak">🔥 Build your first streak</strong></div><button class="secondary" id="mccFocusBtn">🎯 Start Focus</button></div></div>
+<div class="card"><h3>📅 Today's Command Center</h3><div class="mcc-timeline" id="mccToday"></div></div>
+
 <div class="grid">
 <div class="card"><div class="muted">This month's income</div><div id="dashIncome" class="metric income">৳0</div></div>
 <div class="card"><div class="muted">This month's expenses</div><div id="dashExpense" class="metric expense">৳0</div></div>
@@ -385,6 +509,21 @@ wallet notes</p>
 
 <section id="settings" class="tab">
 <div class="grid">
+<div class="card">
+ <h2>🎨 Command Center Theme</h2>
+ <p class="muted">Change the accent color without changing your data or app functions.</p>
+ <div class="mcc-colors" id="mccColors">
+  <button class="mcc-color" title="Cyber Purple" data-color="#a855f7" data-color2="#7c3aed" style="background:#a855f7"></button>
+  <button class="mcc-color" title="Cyan" data-color="#22d3ee" data-color2="#0891b2" style="background:#22d3ee"></button>
+  <button class="mcc-color" title="Green" data-color="#22c55e" data-color2="#15803d" style="background:#22c55e"></button>
+  <button class="mcc-color" title="Red" data-color="#f43f5e" data-color2="#be123c" style="background:#f43f5e"></button>
+  <button class="mcc-color" title="Orange" data-color="#f97316" data-color2="#c2410c" style="background:#f97316"></button>
+  <button class="mcc-color" title="Pink" data-color="#ec4899" data-color2="#be185d" style="background:#ec4899"></button>
+  <button class="mcc-color" title="Gold" data-color="#eab308" data-color2="#a16207" style="background:#eab308"></button>
+  <button class="mcc-color" title="Blue" data-color="#3b82f6" data-color2="#1d4ed8" style="background:#3b82f6"></button>
+ </div>
+</div>
+
 <div class="card">
 <h2>Your profile</h2>
 <form id="profileForm">
@@ -1050,6 +1189,151 @@ document.getElementById('installAppBtn')?.addEventListener('click',async()=>{
 });
 window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;});
 if('serviceWorker' in navigator && location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
+</script>
+
+<button class="mcc-quick" id="mccFab" aria-label="Quick actions">＋</button>
+<div class="mcc-sheet" id="mccSheet">
+ <button onclick="mccOpen('money');mccToggleSheet()">💵 Money</button>
+ <button onclick="mccOpen('study');mccToggleSheet()">📚 Study</button>
+ <button onclick="mccOpen('job');mccToggleSheet()">💼 Job</button>
+ <button onclick="mccOpen('wallets');mccToggleSheet()">👛 Wallets</button>
+</div>
+<div class="mcc-bottom">
+ <button class="active" data-mcc="dashboard" onclick="mccOpen('dashboard')">🏠<br>Home</button>
+ <button data-mcc="money" onclick="mccOpen('money')">💰<br>Money</button>
+ <button data-mcc="study" onclick="mccOpen('study')">📚<br>Study</button>
+ <button data-mcc="job" onclick="mccOpen('job')">💼<br>Job</button>
+ <button data-mcc="settings" onclick="mccOpen('settings')">☰<br>More</button>
+</div>
+<div class="mcc-focus-overlay" id="mccFocusOverlay">
+ <div class="mcc-focus-box">
+  <div class="mcc-focus-sub">Focus Mode</div>
+  <h2 id="mccFocusTask">Study Session</h2>
+  <div class="mcc-focus-time" id="mccFocusTime">25:00</div>
+  <div class="mcc-sub" id="mccFocusHint">Stay focused. You've got this.</div>
+  <div class="row" style="justify-content:center;margin-top:22px">
+   <button class="primary" id="mccPauseFocus">Pause</button><button class="secondary" id="mccFinishFocus">Finish</button><button class="secondary" id="mccCloseFocus">Close</button>
+  </div>
+ </div>
+</div>
+
+<script>
+/* Monster Command Center integration — additive only */
+(function(){
+ const $=id=>document.getElementById(id);
+ const moneyFmt=n=>'৳'+Number(n||0).toLocaleString('en-BD',{minimumFractionDigits:0,maximumFractionDigits:2});
+ const dToday=()=>new Date().toISOString().slice(0,10);
+ function mccOpen(id){
+   if(typeof openTab==='function') openTab(id);
+   document.querySelectorAll('.mcc-bottom button').forEach(b=>b.classList.toggle('active',b.dataset.mcc===id));
+   window.scrollTo({top:0,behavior:'smooth'});
+ }
+ window.mccOpen=mccOpen;
+ function mccToggleSheet(){$('mccSheet')?.classList.toggle('show')}
+ window.mccToggleSheet=mccToggleSheet;
+ $('mccFab')?.addEventListener('click',mccToggleSheet);
+
+ function setBar(id,p){p=Math.max(0,Math.min(100,p));if($(id))$(id).style.width=p+'%';return Math.round(p)}
+ function refreshMcc(){
+   if(typeof db==='undefined') return;
+   const now=new Date(),h=now.getHours();
+   const greet=h<5?'Good night':h<12?'Good morning':h<17?'Good afternoon':h<21?'Good evening':'Good night';
+   if($('mccGreeting'))$('mccGreeting').textContent='👹 '+greet+' · Monster Command Center';
+
+   const schedules=Array.isArray(db.schedule)?db.schedule:[], todayRows=schedules.filter(x=>x.date===dToday());
+   const studies=todayRows.filter(x=>x.type==='study'), jobs=todayRows.filter(x=>x.type==='job');
+   const upcoming=todayRows.filter(x=>x.start && x.start>now.toTimeString().slice(0,5));
+   let status='SYSTEM STATUS · READY',message='Your command center is standing by.';
+   if(upcoming.length){status='SYSTEM STATUS · ATTENTION';message=upcoming.length+' upcoming item'+(upcoming.length>1?'s':'')+' today.'}
+   if(todayRows.some(x=>x.status==='missed')){status='SYSTEM STATUS · ALERT';message='A scheduled item needs your attention.'}
+   if($('mccStatusTitle'))$('mccStatusTitle').textContent=status;
+   if($('mccStatusMessage'))$('mccStatusMessage').textContent=message;
+   if($('mccStatusChips'))$('mccStatusChips').innerHTML=
+     '<span class="mcc-chip ok">🟢 Data stored locally</span>'+
+     '<span class="mcc-chip">📚 '+studies.length+' study</span>'+
+     '<span class="mcc-chip">💼 '+jobs.length+' job</span>'+
+     '<span class="mcc-chip">🔔 '+upcoming.length+' upcoming</span>';
+
+   const month=dToday().slice(0,7), mr=Array.isArray(db.money)?db.money.filter(x=>(x.date||'').startsWith(month)):[];
+   const typ=x=>String(x.type||'').toLowerCase();
+   const inc=mr.filter(x=>typ(x).includes('income')||typ(x)==='in').reduce((s,x)=>s+Number(x.amount||0),0);
+   const exp=mr.filter(x=>typ(x).includes('expense')||typ(x)==='out').reduce((s,x)=>s+Number(x.amount||0),0);
+   const tr=mr.filter(x=>typ(x).includes('transfer')).reduce((s,x)=>s+Number(x.amount||0),0);
+   if($('mccIncome'))$('mccIncome').textContent=moneyFmt(inc);
+   if($('mccExpense'))$('mccExpense').textContent=moneyFmt(exp);
+   if($('mccTransfers'))$('mccTransfers').textContent=moneyFmt(tr);
+
+   const sd=studies.length?Math.min(100,studies.length===1&&studies[0].end?100:Math.round(todayRows.filter(x=>x.type==='study'&&x.start<now.toTimeString().slice(0,5)).length/studies.length*100)):0;
+   const jd=jobs.length?Math.min(100,todayRows.filter(x=>x.type==='job'&&x.start<now.toTimeString().slice(0,5)).length/jobs.length*100):0;
+   const budget=inc?Math.max(0,(1-exp/inc)*100):0;
+   if($('mccStudyPct'))$('mccStudyPct').textContent=setBar('mccStudyBar',sd)+'%';
+   if($('mccJobPct'))$('mccJobPct').textContent=setBar('mccJobBar',jd)+'%';
+   if($('mccBudgetPct'))$('mccBudgetPct').textContent=setBar('mccBudgetBar',budget)+'%';
+
+   // Momentum = consecutive days with at least one study session, without inventing completion state.
+   const studyDays=new Set(schedules.filter(x=>x.type==='study').map(x=>x.date));
+   let streak=0, cursor=new Date();
+   while(studyDays.has(cursor.toISOString().slice(0,10))){streak++;cursor.setDate(cursor.getDate()-1)}
+   if($('mccStreak'))$('mccStreak').textContent=streak?'🔥 '+streak+'-day study momentum':'🔥 Build your first study streak';
+
+   // Wallet balances use the app's existing walletStats when available.
+   let total=0, cards='';
+   const wallets=Array.isArray(db.wallets)?db.wallets:[];
+   if(typeof walletStats==='function'){
+     wallets.slice(0,6).forEach(w=>{
+       const st=walletStats(w.id);
+       const bal=Number(st?.balance??st?.current??0); total+=bal;
+       cards+='<div class="mcc-account"><span class="mcc-label">'+escapeHtml(w.service||'Account')+'</span><strong>'+moneyFmt(bal)+'</strong><span class="mcc-sub">'+escapeHtml(w.label||'')+'</span></div>';
+     });
+   }
+   if($('mccTotal'))$('mccTotal').textContent=moneyFmt(total);
+   if($('mccAccounts'))$('mccAccounts').innerHTML=cards||'<div class="mcc-account" style="grid-column:1/-1"><span class="mcc-sub">Add an account in Wallets to see balances here.</span></div>';
+
+   if($('mccToday')){
+     const arr=todayRows.slice().sort((a,b)=>(a.start||'').localeCompare(b.start||'')).slice(0,8);
+     $('mccToday').innerHTML=arr.length?arr.map(x=>'<div class="mcc-timeline-card"><div class="mcc-time">'+escapeHtml(typeof fmtTime==='function'?fmtTime(x.start):x.start)+'</div><div><b>'+(x.type==='job'?'💼':'📚')+' '+escapeHtml(x.task||'Scheduled session')+'</b><div class="mcc-sub">'+(x.end?'Until '+escapeHtml(typeof fmtTime==='function'?fmtTime(x.end):x.end):'')+'</div></div></div>').join(''):'<div class="mcc-sub">Nothing scheduled today. Enjoy the breathing room.</div>';
+   }
+ }
+ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+ // Theme is stored independently so changing the visual accent cannot mutate app data.
+ const colors=[
+  ['#a855f7','#7c3aed'],['#22d3ee','#0891b2'],['#22c55e','#15803d'],['#f43f5e','#be123c'],
+  ['#f97316','#c2410c'],['#ec4899','#be185d'],['#eab308','#a16207'],['#3b82f6','#1d4ed8']
+ ];
+ function applyAccent(a,b,saveIt){
+   document.documentElement.style.setProperty('--accent',a);
+   document.documentElement.style.setProperty('--accent2',b);
+   document.documentElement.style.setProperty('--primary',a);
+   document.documentElement.style.setProperty('--primary2',b);
+   document.documentElement.style.setProperty('--accentSoft',a+'26');
+   document.querySelectorAll('.mcc-color').forEach(x=>x.classList.toggle('active',x.dataset.color===a));
+   if(saveIt)localStorage.setItem('mccAccent',JSON.stringify([a,b]));
+ }
+ function initAccent(){
+   let saved=null;try{saved=JSON.parse(localStorage.getItem('mccAccent')||'null')}catch(_){}
+   applyAccent(saved?.[0]||colors[0][0],saved?.[1]||colors[0][1],false);
+   document.querySelectorAll('.mcc-color').forEach(x=>x.addEventListener('click',()=>applyAccent(x.dataset.color,x.dataset.color2,true)));
+ }
+ let focusTimer=null,focusSeconds=0,focusPaused=false;
+ function parseMins(t){if(!t)return 25;const [h,m]=t.split(':').map(Number);return h*60+m}
+ function renderFocus(){if($('mccFocusTime'))$('mccFocusTime').textContent=String(Math.floor(focusSeconds/60)).padStart(2,'0')+':'+String(focusSeconds%60).padStart(2,'0')}
+ function startFocus(){
+   const arr=(Array.isArray(db.schedule)?db.schedule:[]).filter(x=>x.date===dToday()&&x.type==='study').sort((a,b)=>(a.start||'').localeCompare(b.start||''));
+   const next=arr[0], mins=next?Math.max(1,(parseMins(next.end)-parseMins(next.start)+1440)%1440):25;
+   if($('mccFocusTask'))$('mccFocusTask').textContent=next?.task||'Study Session';
+   focusSeconds=mins*60;focusPaused=false;renderFocus();$('mccFocusOverlay')?.classList.add('show');
+   clearInterval(focusTimer);
+   focusTimer=setInterval(()=>{if(!focusPaused){focusSeconds--;renderFocus();if(focusSeconds<=0){clearInterval(focusTimer);if($('mccFocusHint'))$('mccFocusHint').textContent='🎯 Focus session complete!'}}},1000);
+ }
+ $('mccFocusBtn')?.addEventListener('click',startFocus);
+ $('mccPauseFocus')?.addEventListener('click',()=>{focusPaused=!focusPaused;$('mccPauseFocus').textContent=focusPaused?'Resume':'Pause'});
+ $('mccFinishFocus')?.addEventListener('click',()=>{clearInterval(focusTimer);$('mccFocusOverlay').classList.remove('show')});
+ $('mccCloseFocus')?.addEventListener('click',()=>{clearInterval(focusTimer);$('mccFocusOverlay').classList.remove('show')});
+ document.addEventListener('DOMContentLoaded',()=>{initAccent();setTimeout(refreshMcc,500)});
+ setInterval(refreshMcc,30000);
+ window.mccRefresh=refreshMcc;
+})();
 </script>
 </body>
 </html>
