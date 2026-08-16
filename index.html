@@ -416,7 +416,7 @@ wallet notes</p>
 <label><input id="notifyEnabled" type="checkbox"> Enable schedule notifications</label>
 <div class="row" style="margin-top:8px">
 <label>Remind me <select id="notifyMinutes" style="max-width:120px"><option value="5">5 min</option><option value="10">10 min</option><option value="15" selected>15 min</option><option value="30">30 min</option><option value="60">1 hour</option></select> before</label>
-<button class="primary" id="enableNotifyBtn" type="button">Allow notifications</button>
+<button class="primary" id="enableNotifyBtn" type="button">Allow notifications</button><button class="secondary" id="testNotifyBtn" type="button">Test notification</button>
 </div>
 <div id="notifyStatus" class="muted" style="margin-top:8px"></div>
 </div>
@@ -655,12 +655,16 @@ function renderTotalWalletBalance(){
   const totalEl=document.getElementById('totalWalletBalance');
   const breakdownEl=document.getElementById('walletBalanceBreakdown');
   if(!totalEl)return;
-  const wallets=Array.isArray(db.wallets)?db.wallets:[];
-  const total=wallets.reduce((sum,w)=>sum+(Number(w.balance)||0),0);
+  const accounts=Array.isArray(db.wallets)?db.wallets:[];
+  const rows=accounts.map(a=>{
+    const s=walletStats(a);
+    return {name:a.label||a.name||'Account', balance:Number(s.balance)||0};
+  });
+  const total=rows.reduce((sum,w)=>sum+w.balance,0);
   totalEl.textContent=money(total);
   if(breakdownEl){
-    breakdownEl.textContent=wallets.length
-      ? wallets.map(w=>`${w.name}: ${money(Number(w.balance)||0)}`).join(' • ')
+    breakdownEl.textContent=rows.length
+      ? rows.map(w=>`${w.name}: ${money(w.balance)}`).join(' • ')
       : 'No accounts added yet';
   }
 }
@@ -720,6 +724,8 @@ async function load(){
  renderAll();
  refreshLockUI(); updateNotifyUI(); scheduleNotifications(); setupAppLock();
  setInterval(scheduleNotifications,60000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleNotifications();});
+ window.addEventListener('focus',scheduleNotifications);
 }
 function renderAll(){renderSchedule();renderMoney();renderWalletSelectors();renderWallets();renderTotalWalletBalance();}
 load();
@@ -809,6 +815,15 @@ function updateNotifyUI(){
     Notification.permission==='granted'?'✓ Notifications are allowed.':
     Notification.permission==='denied'?'Notifications are blocked in browser settings.':'Tap “Allow notifications” to enable them.';
 }
+document.getElementById('testNotifyBtn')?.addEventListener('click',async()=>{
+  if(!notificationSupported()){alert('Notifications are not supported in this browser.');return;}
+  if(Notification.permission!=='granted'){
+    const ok=await requestNotifications();
+    if(!ok){updateNotifyUI();return;}
+  }
+  new Notification('Allowance Assistant test',{body:'Notifications are working. Your schedule reminders can now be enabled.'});
+  db.notifications.enabled=true;save();updateNotifyUI();scheduleNotifications();
+});
 document.getElementById('enableNotifyBtn')?.addEventListener('click',async()=>{
   const ok=await requestNotifications();
   if(ok){db.notifications.enabled=true;save();updateNotifyUI();scheduleNotifications();alert('Notifications enabled.');}
@@ -845,16 +860,16 @@ function scheduleNotifications(){
     }
   });
 }
-
+</script>
 
 <script>
 function populateFlowWallets(){
   const from=document.getElementById('flowWallet'), to=document.getElementById('flowToWallet');
   if(!from||!to)return;
-  const wallets=Array.isArray(db.wallets)?db.wallets:[];
-  const options=wallets.map(w=>`<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+  const accounts=Array.isArray(db.wallets)?db.wallets:[];
+  const options=accounts.map(a=>`<option value="${a.id}">${esc(a.label||a.name||'Account')}</option>`).join('');
   from.innerHTML=options; to.innerHTML=options;
-  if(wallets.length>1)to.value=wallets[1].id;
+  if(accounts.length>1)to.value=accounts[1].id;
 }
 function updateFlowUI(){
   const type=document.getElementById('flowType')?.value;
@@ -862,6 +877,10 @@ function updateFlowUI(){
   if(to)to.style.display=type==='transfer'?'block':'none';
   const btn=document.getElementById('addFlowBtn');
   if(btn)btn.textContent=type==='transfer'?'Transfer Money':'Add Money Flow';
+}
+function addWalletTransaction(accountId,type,amount,date,note){
+  db.walletTransactions=db.walletTransactions||[];
+  db.walletTransactions.push({id:crypto.randomUUID(),accountId,date,type,amount:Number(amount),note:note||''});
 }
 document.getElementById('flowType')?.addEventListener('change',updateFlowUI);
 document.getElementById('addFlowBtn')?.addEventListener('click',()=>{
@@ -873,34 +892,29 @@ document.getElementById('addFlowBtn')?.addEventListener('click',()=>{
   const date=document.getElementById('flowDate').value||today();
   const msg=document.getElementById('flowMessage');
   if(!amount||amount<=0){msg.textContent='Enter a valid amount.';return;}
-  if(!fromId){msg.textContent='Add a wallet/account first.';return;}
-  const from=db.wallets.find(w=>String(w.id)===String(fromId));
-  if(!from){msg.textContent='Wallet not found.';return;}
+  const from=db.wallets.find(a=>String(a.id)===String(fromId));
+  if(!from){msg.textContent='Add an account first.';return;}
+  const current=walletStats(from).balance;
   if(type==='transfer'){
-    if(!toId||String(toId)===String(fromId)){msg.textContent='Choose a different destination wallet.';return;}
-    const toWallet=db.wallets.find(w=>String(w.id)===String(toId));
-    if(!toWallet){msg.textContent='Destination wallet not found.';return;}
-    if((Number(from.balance)||0)<amount){msg.textContent='Not enough balance in the source wallet.';return;}
-    from.balance=(Number(from.balance)||0)-amount;
-    toWallet.balance=(Number(toWallet.balance)||0)+amount;
-    db.walletTransactions=db.walletTransactions||[];
-    db.walletTransactions.push({id:Date.now(),date,type:'transfer',from:from.id,to:toWallet.id,amount,note});
-    msg.textContent=`Transferred ${money(amount)} from ${from.name} to ${toWallet.name}.`;
+    if(!toId||String(toId)===String(fromId)){msg.textContent='Choose a different destination account.';return;}
+    const to=db.wallets.find(a=>String(a.id)===String(toId));
+    if(!to){msg.textContent='Destination account not found.';return;}
+    if(current<amount){msg.textContent='Not enough balance in the source account.';return;}
+    addWalletTransaction(from.id,'withdrawal',amount,date,note||`Transfer to ${to.label}`);
+    addWalletTransaction(to.id,'deposit',amount,date,note||`Transfer from ${from.label}`);
+    msg.textContent=`Transferred ${money(amount)} from ${from.label} to ${to.label}.`;
   }else{
-    const sign=type==='expense'?-1:1;
-    if(type==='expense'&&(Number(from.balance)||0)<amount){msg.textContent='Not enough balance for this expense.';return;}
-    from.balance=(Number(from.balance)||0)+(sign*amount);
-    db.money=db.money||[];
-    db.money.push({id:Date.now(),date,type:type==='expense'?'expense':'income',amount,note:note||(type==='deposit'?'Deposit':'Income / Receive'),walletId:from.id});
-    db.walletTransactions=db.walletTransactions||[];
-    db.walletTransactions.push({id:Date.now()+1,date,type,walletId:from.id,amount,note});
-    msg.textContent=`${type==='expense'?'Spent':'Added'} ${money(amount)} ${type==='deposit'?'as a deposit':''}.`;
+    if(type==='expense' && current<amount){msg.textContent='Not enough balance for this expense.';return;}
+    const txType=type==='expense'?'expense':'deposit';
+    addWalletTransaction(from.id,txType,amount,date,note||(type==='deposit'?'Deposit':'Income / Receive'));
+    msg.textContent=type==='expense'?`Spent ${money(amount)} from ${from.label}.`:`Added ${money(amount)} to ${from.label}.`;
   }
   save();renderAll();populateFlowWallets();
   document.getElementById('flowAmount').value='';
   document.getElementById('flowNote').value='';
   document.getElementById('flowDate').value=today();
 });
+setTimeout(()=>{populateFlowWallets();updateFlowUI();const d=document.getElementById('flowDate');if(d)d.value=today();},150);
 </script>
 
 
