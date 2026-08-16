@@ -39,9 +39,24 @@ canvas{max-width:100%}
 </style>
 </head>
 <body>
+<div id="appLockScreen" style="display:none;position:fixed;inset:0;z-index:99999;background:var(--bg,#f4f7fb);align-items:center;justify-content:center;padding:24px">
+  <div class="card" style="width:min(420px,100%);text-align:center">
+    <div style="font-size:48px">🔒</div>
+    <h1>Allowance Assistant</h1>
+    <p class="muted">This app is locked.</p>
+    <input id="unlockPin" type="password" inputmode="numeric" maxlength="12" placeholder="Enter PIN" style="text-align:center;font-size:20px;letter-spacing:4px">
+    <button class="primary" id="unlockBtn" type="button" style="margin-top:12px;width:100%">Unlock</button>
+    <div id="unlockError" class="muted" style="margin-top:8px"></div>
+  </div>
+</div>
 <header>
 <h1>📚 Allowance Assistant</h1>
-<p>Study planning • Bus-counter work • Income & expense tracking • Digital-wallet notes</p>
+<p>Study planning • Bus-counter work • Income & expense tracking • Digital-<div class="card" id="totalWalletBalanceCard">
+<h2>💰 Total Money Across All Accounts</h2>
+<div id="totalWalletBalance" style="font-size:32px;font-weight:800;margin:8px 0">৳0.00</div>
+<div id="walletBalanceBreakdown" class="muted">All wallet balances combined</div>
+</div>
+wallet notes</p>
 </header>
 
 <nav id="nav">
@@ -218,6 +233,31 @@ canvas{max-width:100%}
 <section id="money" class="tab">
 <div class="grid">
 <div class="card">
+
+<div class="card">
+<h2>💸 Money Flow</h2>
+<p class="muted">Choose how money moves: income, deposit, expense, or transfer between your own accounts.</p>
+<div class="row">
+<select id="flowType">
+<option value="income">Income / Receive</option>
+<option value="deposit">Deposit</option>
+<option value="expense">Expense / Spend</option>
+<option value="transfer">Transfer between wallets</option>
+</select>
+<input id="flowAmount" type="number" min="0" step="0.01" placeholder="Amount">
+</div>
+<div class="row">
+<select id="flowWallet"></select>
+<select id="flowToWallet" style="display:none"></select>
+</div>
+<div class="row">
+<input id="flowNote" placeholder="Note / source / reason">
+<input id="flowDate" type="date">
+</div>
+<button class="primary" id="addFlowBtn" type="button">Add Money Flow</button>
+<div id="flowMessage" class="muted" style="margin-top:8px"></div>
+</div>
+
 <h2>Add income / expense</h2>
 <form id="moneyForm">
 <label>Date<input id="mDate" type="date" required></label>
@@ -361,6 +401,26 @@ canvas{max-width:100%}
 <div id="storageStatus" class="muted" style="margin-top:8px"></div>
 </div>
 <div class="card">
+<h2>🔒 App Lock</h2>
+<p class="muted">Protect the app with a PIN. The PIN is stored only on this device as a cryptographic hash.</p>
+<div id="lockState" class="muted" style="margin-bottom:8px"></div>
+<div class="row">
+<input id="lockPin" type="password" inputmode="numeric" maxlength="12" placeholder="4–12 digit PIN" style="max-width:180px">
+<button class="primary" id="setLockBtn" type="button">Set / Change PIN</button>
+<button class="secondary" id="disableLockBtn" type="button">Disable Lock</button>
+</div>
+</div>
+<div class="card">
+<h2>🔔 Schedule Notifications</h2>
+<p class="muted">Get reminders before your study sessions and job shifts. Notification permission is required.</p>
+<label><input id="notifyEnabled" type="checkbox"> Enable schedule notifications</label>
+<div class="row" style="margin-top:8px">
+<label>Remind me <select id="notifyMinutes" style="max-width:120px"><option value="5">5 min</option><option value="10">10 min</option><option value="15" selected>15 min</option><option value="30">30 min</option><option value="60">1 hour</option></select> before</label>
+<button class="primary" id="enableNotifyBtn" type="button">Allow notifications</button>
+</div>
+<div id="notifyStatus" class="muted" style="margin-top:8px"></div>
+</div>
+<div class="card">
 <h2>Backup</h2>
 <p>Export your data as a JSON file. Keep it somewhere safe. Importing replaces the current local data.</p>
 <div class="row"><button class="primary" onclick="exportData()">Export backup</button><label class="secondary" style="cursor:pointer">Import backup<input id="importFile" type="file" accept=".json" hidden onchange="importData(event)"></label></div>
@@ -375,6 +435,8 @@ canvas{max-width:100%}
 const KEY='allowanceAssistantV2';
 const OLD_KEY='studentJobAssistantV1';
 let db=JSON.parse(localStorage.getItem(KEY)||'null')||JSON.parse(localStorage.getItem(OLD_KEY)||'null')||{profile:{},routine:{studyStart:'18:00',studyMin:90,jobStart:'09:00',jobMin:360},schedule:[],money:[],wallets:[],walletTransactions:[]};
+db.security=db.security||{lockEnabled:false,lockHash:''};
+db.notifications=db.notifications||{enabled:false,minutes:15};
 let dbReady=false, saveTimer=null;
 const today=()=>new Date().toISOString().slice(0,10);
 
@@ -516,14 +578,14 @@ function renderSchedule(){
  document.getElementById('dashHours').textContent=Math.round(t.reduce((s,x)=>s+mins(x.start,x.end),0)/60*10)/10+'h';
  renderStudy(); renderJob();
 }
-function delSchedule(id){db.schedule=db.schedule.filter(x=>x.id!==id);save();renderAll();}
+function delSchedule(id){db.schedule=db.schedule.filter(x=>x.id!==id);save();renderAll();scheduleNotifications();}
 document.getElementById('studyForm').onsubmit=e=>{
  e.preventDefault();
  const studyEndTime=getEndTime('studyEnd','studyDuration','studyDurationUnit','studyStart');
  if(!studyStart.value||!studyEndTime){alert('Enter an end time or a duration.');return;}
  const dates=generateDates(studyDate.value,studyRepeatType.value,'study');
  dates.forEach(d=>db.schedule.push({id:crypto.randomUUID(),date:d,start:studyStart.value,end:studyEndTime,type:'study',task:studyTask.value,notes:studyNotes.value,series:'study-'+crypto.randomUUID()}));
- save();e.target.reset();studyDate.value=today();studyRepeatType.value='once';renderAll();
+ save();e.target.reset();studyDate.value=today();studyRepeatType.value='once';renderAll();scheduleNotifications();
 }
 document.getElementById('jobForm').onsubmit=e=>{
  e.preventDefault();
@@ -531,7 +593,7 @@ document.getElementById('jobForm').onsubmit=e=>{
  if(!jobStart.value||!jobEndTime){alert('Enter an end time or a duration.');return;}
  const dates=generateDates(jobDate.value,jobRepeatType.value,'job');
  dates.forEach(d=>db.schedule.push({id:crypto.randomUUID(),date:d,start:jobStart.value,end:jobEndTime,type:'job',task:jobTask.value,notes:jobNotes.value,series:'job-'+crypto.randomUUID()}));
- save();e.target.reset();jobDate.value=today();jobRepeatType.value='once';jobTask.value='Bus stand counter shift';renderAll();
+ save();e.target.reset();jobDate.value=today();jobRepeatType.value='once';jobTask.value='Bus stand counter shift';renderAll();scheduleNotifications();
 }
 document.getElementById('studyRoutineForm').onsubmit=e=>{
  e.preventDefault();db.routine.studyStart=rStudyStart.value;db.routine.studyMin=durationToMinutes(rStudyValue.value,rStudyUnit.value);save();alert('Study routine saved.');
@@ -588,6 +650,21 @@ function walletStats(a){
  const expenses=tx.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);
  return {incoming,outgoing,expenses,balance:(+a.opening||0)+incoming-outgoing};
 }
+
+function renderTotalWalletBalance(){
+  const totalEl=document.getElementById('totalWalletBalance');
+  const breakdownEl=document.getElementById('walletBalanceBreakdown');
+  if(!totalEl)return;
+  const wallets=Array.isArray(db.wallets)?db.wallets:[];
+  const total=wallets.reduce((sum,w)=>sum+(Number(w.balance)||0),0);
+  totalEl.textContent=money(total);
+  if(breakdownEl){
+    breakdownEl.textContent=wallets.length
+      ? wallets.map(w=>`${w.name}: ${money(Number(w.balance)||0)}`).join(' • ')
+      : 'No accounts added yet';
+  }
+}
+
 function renderWallets(){
  const tx=db.walletTransactions||[];
  document.getElementById('walletTable').innerHTML=db.wallets.length?db.wallets.map(a=>{
@@ -626,20 +703,25 @@ document.getElementById('walletFilter').onchange=renderWallets;
 document.getElementById('walletMonth').onchange=renderWallets;
 
 document.getElementById('profileForm').onsubmit=e=>{e.preventDefault();db.profile={name:pName.value,goal:pGoal.value,job:pJob.value};save();alert('Profile saved.');}
-function exportData(){let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='student-job-assistant-backup.json';a.click();URL.revokeObjectURL(a.href);}
+function exportData(){let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='allowance-assistant-backup.json';a.click();URL.revokeObjectURL(a.href);}
 function importData(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.schedule||!x.money)throw 0;db=x;save();renderAll();alert('Backup imported.')}catch(_){alert('Invalid backup file.')}};r.readAsText(f);}
-function clearAll(){if(confirm('Delete all local data? This cannot be undone unless you have a backup.')){localStorage.removeItem(KEY);location.reload();}}
+function clearAll(){if(confirm('Delete all local data? This cannot be undone unless you have a backup.')){localStorage.removeItem(KEY);location.reload();setTimeout(()=>{populateFlowWallets();updateFlowUI();const d=document.getElementById('flowDate');if(d)d.value=today();},100);}}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 async function load(){
  studyDate.value=today();jobDate.value=today();mDate.value=today();monthFilter.value=today().slice(0,7);studyFilter.value=today();jobFilter.value=today();wtDate.value=today();walletMonth.value=today().slice(0,7);
+ if(typeof loadPersistentData==='function') await loadPersistentData();
+ db.security=db.security||{lockEnabled:false,lockHash:''};
+ db.notifications=db.notifications||{enabled:false,minutes:15};
  rStudyStart.value=db.routine.studyStart;
  if(db.routine.studyMin%60===0){rStudyValue.value=db.routine.studyMin/60;rStudyUnit.value='hours';}else{rStudyValue.value=db.routine.studyMin;rStudyUnit.value='minutes';}
  rJobStart.value=db.routine.jobStart;
  if(db.routine.jobMin%60===0){rJobValue.value=db.routine.jobMin/60;rJobUnit.value='hours';}else{rJobValue.value=db.routine.jobMin;rJobUnit.value='minutes';}
  pName.value=db.profile.name||'';pGoal.value=db.profile.goal||'';pJob.value=db.profile.job||'';
  renderAll();
+ refreshLockUI(); updateNotifyUI(); scheduleNotifications(); setupAppLock();
+ setInterval(scheduleNotifications,60000);
 }
-function renderAll(){renderSchedule();renderMoney();renderWalletSelectors();renderWallets();}
+function renderAll(){renderSchedule();renderMoney();renderWalletSelectors();renderWallets();renderTotalWalletBalance();}
 load();
 </script>
 
@@ -664,6 +746,277 @@ document.getElementById('storageStatusBtn')?.addEventListener('click', async ()=
   updateStorageStatus();
 });
 window.addEventListener('load', updateStorageStatus);
+</script>
+
+
+<script>
+async function sha256(text){
+  const data=new TextEncoder().encode(text);
+  const hash=await crypto.subtle.digest('SHA-256',data);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function validPin(pin){return /^\d{4,12}$/.test(pin);}
+function setupAppLock(){
+  const screen=document.getElementById('appLockScreen');
+  if(!screen)return;
+  if(db.security?.lockEnabled && db.security.lockHash){
+    screen.style.display='flex';
+    setTimeout(()=>document.getElementById('unlockPin')?.focus(),50);
+  }else screen.style.display='none';
+}
+document.getElementById('unlockBtn')?.addEventListener('click',async()=>{
+  const pin=document.getElementById('unlockPin').value;
+  const err=document.getElementById('unlockError');
+  if((await sha256(pin))===db.security.lockHash){
+    document.getElementById('appLockScreen').style.display='none';
+    document.getElementById('unlockPin').value='';
+    err.textContent='';
+  }else err.textContent='Incorrect PIN.';
+});
+document.getElementById('unlockPin')?.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('unlockBtn').click();});
+
+function refreshLockUI(){
+  const state=document.getElementById('lockState');
+  if(state) state.textContent=db.security.lockEnabled?'🔒 App lock is enabled.':'🔓 App lock is disabled.';
+}
+document.getElementById('setLockBtn')?.addEventListener('click',async()=>{
+  const pin=document.getElementById('lockPin').value.trim();
+  if(!validPin(pin)){alert('Use a 4–12 digit PIN.');return;}
+  db.security={lockEnabled:true,lockHash:await sha256(pin)};
+  save(); document.getElementById('lockPin').value=''; refreshLockUI();
+  alert('App lock enabled.');
+});
+document.getElementById('disableLockBtn')?.addEventListener('click',()=>{
+  if(!db.security.lockEnabled){return;}
+  const pin=prompt('Enter your current PIN to disable app lock:');
+  if(pin===null)return;
+  sha256(pin).then(h=>{
+    if(h!==db.security.lockHash){alert('Incorrect PIN.');return;}
+    db.security={lockEnabled:false,lockHash:''};save();refreshLockUI();alert('App lock disabled.');
+  });
+});
+
+function notificationSupported(){return 'Notification' in window;}
+async function requestNotifications(){
+  if(!notificationSupported()){alert('This browser does not support notifications.');return false;}
+  return (await Notification.requestPermission())==='granted';
+}
+function updateNotifyUI(){
+  const s=document.getElementById('notifyStatus'), c=document.getElementById('notifyEnabled'), m=document.getElementById('notifyMinutes');
+  if(c)c.checked=!!db.notifications.enabled;
+  if(m)m.value=String(db.notifications.minutes||15);
+  if(s)s.textContent=!notificationSupported()?'Notifications are not supported here.':
+    Notification.permission==='granted'?'✓ Notifications are allowed.':
+    Notification.permission==='denied'?'Notifications are blocked in browser settings.':'Tap “Allow notifications” to enable them.';
+}
+document.getElementById('enableNotifyBtn')?.addEventListener('click',async()=>{
+  const ok=await requestNotifications();
+  if(ok){db.notifications.enabled=true;save();updateNotifyUI();scheduleNotifications();alert('Notifications enabled.');}
+  else updateNotifyUI();
+});
+document.getElementById('notifyEnabled')?.addEventListener('change',async e=>{
+  if(e.target.checked){
+    const ok=await requestNotifications();
+    if(!ok){e.target.checked=false;db.notifications.enabled=false;updateNotifyUI();return;}
+    db.notifications.enabled=true;
+  }else db.notifications.enabled=false;
+  save();updateNotifyUI();scheduleNotifications();
+});
+document.getElementById('notifyMinutes')?.addEventListener('change',e=>{
+  db.notifications.minutes=Number(e.target.value)||15;save();scheduleNotifications();
+});
+
+let notificationTimers=[];
+function clearNotificationTimers(){notificationTimers.forEach(clearTimeout);notificationTimers=[];}
+function scheduleNotifications(){
+  clearNotificationTimers();
+  if(!db.notifications.enabled || !notificationSupported() || Notification.permission!=='granted')return;
+  const lead=(Number(db.notifications.minutes)||15)*60000, now=Date.now();
+  db.schedule.forEach(item=>{
+    const start=new Date(`${item.date}T${item.start}:00`).getTime();
+    const when=start-lead;
+    if(when>now && when-now<=2147483647){
+      notificationTimers.push(setTimeout(()=>{
+        if(db.notifications.enabled && Notification.permission==='granted'){
+          const kind=item.type==='job'?'💼 Job shift':'📚 Study session';
+          new Notification(`${kind} starts soon`,{body:`${item.task} • ${fmtTime(item.start)}–${fmtTime(item.end)}`,tag:'allowance-'+item.id});
+        }
+      },when-now));
+    }
+  });
+}
+
+
+<script>
+function populateFlowWallets(){
+  const from=document.getElementById('flowWallet'), to=document.getElementById('flowToWallet');
+  if(!from||!to)return;
+  const wallets=Array.isArray(db.wallets)?db.wallets:[];
+  const options=wallets.map(w=>`<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+  from.innerHTML=options; to.innerHTML=options;
+  if(wallets.length>1)to.value=wallets[1].id;
+}
+function updateFlowUI(){
+  const type=document.getElementById('flowType')?.value;
+  const to=document.getElementById('flowToWallet');
+  if(to)to.style.display=type==='transfer'?'block':'none';
+  const btn=document.getElementById('addFlowBtn');
+  if(btn)btn.textContent=type==='transfer'?'Transfer Money':'Add Money Flow';
+}
+document.getElementById('flowType')?.addEventListener('change',updateFlowUI);
+document.getElementById('addFlowBtn')?.addEventListener('click',()=>{
+  const type=document.getElementById('flowType').value;
+  const amount=Number(document.getElementById('flowAmount').value);
+  const fromId=document.getElementById('flowWallet').value;
+  const toId=document.getElementById('flowToWallet').value;
+  const note=document.getElementById('flowNote').value.trim();
+  const date=document.getElementById('flowDate').value||today();
+  const msg=document.getElementById('flowMessage');
+  if(!amount||amount<=0){msg.textContent='Enter a valid amount.';return;}
+  if(!fromId){msg.textContent='Add a wallet/account first.';return;}
+  const from=db.wallets.find(w=>String(w.id)===String(fromId));
+  if(!from){msg.textContent='Wallet not found.';return;}
+  if(type==='transfer'){
+    if(!toId||String(toId)===String(fromId)){msg.textContent='Choose a different destination wallet.';return;}
+    const toWallet=db.wallets.find(w=>String(w.id)===String(toId));
+    if(!toWallet){msg.textContent='Destination wallet not found.';return;}
+    if((Number(from.balance)||0)<amount){msg.textContent='Not enough balance in the source wallet.';return;}
+    from.balance=(Number(from.balance)||0)-amount;
+    toWallet.balance=(Number(toWallet.balance)||0)+amount;
+    db.walletTransactions=db.walletTransactions||[];
+    db.walletTransactions.push({id:Date.now(),date,type:'transfer',from:from.id,to:toWallet.id,amount,note});
+    msg.textContent=`Transferred ${money(amount)} from ${from.name} to ${toWallet.name}.`;
+  }else{
+    const sign=type==='expense'?-1:1;
+    if(type==='expense'&&(Number(from.balance)||0)<amount){msg.textContent='Not enough balance for this expense.';return;}
+    from.balance=(Number(from.balance)||0)+(sign*amount);
+    db.money=db.money||[];
+    db.money.push({id:Date.now(),date,type:type==='expense'?'expense':'income',amount,note:note||(type==='deposit'?'Deposit':'Income / Receive'),walletId:from.id});
+    db.walletTransactions=db.walletTransactions||[];
+    db.walletTransactions.push({id:Date.now()+1,date,type,walletId:from.id,amount,note});
+    msg.textContent=`${type==='expense'?'Spent':'Added'} ${money(amount)} ${type==='deposit'?'as a deposit':''}.`;
+  }
+  save();renderAll();populateFlowWallets();
+  document.getElementById('flowAmount').value='';
+  document.getElementById('flowNote').value='';
+  document.getElementById('flowDate').value=today();
+});
+</script>
+
+
+<script>
+function populateFlowWallets(){
+  const from=document.getElementById('flowWallet'), to=document.getElementById('flowToWallet');
+  if(!from||!to)return;
+  const wallets=Array.isArray(db.wallets)?db.wallets:[];
+  const options=wallets.map(w=>`<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+  from.innerHTML=options; to.innerHTML=options;
+  if(wallets.length>1)to.value=wallets[1].id;
+}
+function updateFlowUI(){
+  const type=document.getElementById('flowType')?.value;
+  const to=document.getElementById('flowToWallet');
+  if(to)to.style.display=type==='transfer'?'block':'none';
+  const btn=document.getElementById('addFlowBtn');
+  if(btn)btn.textContent=type==='transfer'?'Transfer Money':'Add Money Flow';
+}
+document.getElementById('flowType')?.addEventListener('change',updateFlowUI);
+document.getElementById('addFlowBtn')?.addEventListener('click',()=>{
+  const type=document.getElementById('flowType').value;
+  const amount=Number(document.getElementById('flowAmount').value);
+  const fromId=document.getElementById('flowWallet').value;
+  const toId=document.getElementById('flowToWallet').value;
+  const note=document.getElementById('flowNote').value.trim();
+  const date=document.getElementById('flowDate').value||today();
+  const msg=document.getElementById('flowMessage');
+  if(!amount||amount<=0){msg.textContent='Enter a valid amount.';return;}
+  if(!fromId){msg.textContent='Add a wallet/account first.';return;}
+  const from=db.wallets.find(w=>String(w.id)===String(fromId));
+  if(!from){msg.textContent='Wallet not found.';return;}
+  if(type==='transfer'){
+    if(!toId||String(toId)===String(fromId)){msg.textContent='Choose a different destination wallet.';return;}
+    const toWallet=db.wallets.find(w=>String(w.id)===String(toId));
+    if(!toWallet){msg.textContent='Destination wallet not found.';return;}
+    if((Number(from.balance)||0)<amount){msg.textContent='Not enough balance in the source wallet.';return;}
+    from.balance=(Number(from.balance)||0)-amount;
+    toWallet.balance=(Number(toWallet.balance)||0)+amount;
+    db.walletTransactions=db.walletTransactions||[];
+    db.walletTransactions.push({id:Date.now(),date,type:'transfer',from:from.id,to:toWallet.id,amount,note});
+    msg.textContent=`Transferred ${money(amount)} from ${from.name} to ${toWallet.name}.`;
+  }else{
+    const sign=type==='expense'?-1:1;
+    if(type==='expense'&&(Number(from.balance)||0)<amount){msg.textContent='Not enough balance for this expense.';return;}
+    from.balance=(Number(from.balance)||0)+(sign*amount);
+    db.money=db.money||[];
+    db.money.push({id:Date.now(),date,type:type==='expense'?'expense':'income',amount,note:note||(type==='deposit'?'Deposit':'Income / Receive'),walletId:from.id});
+    db.walletTransactions=db.walletTransactions||[];
+    db.walletTransactions.push({id:Date.now()+1,date,type,walletId:from.id,amount,note});
+    msg.textContent=`${type==='expense'?'Spent':'Added'} ${money(amount)} ${type==='deposit'?'as a deposit':''}.`;
+  }
+  save();renderAll();populateFlowWallets();
+  document.getElementById('flowAmount').value='';
+  document.getElementById('flowNote').value='';
+  document.getElementById('flowDate').value=today();
+});
+setTimeout(()=>{populateFlowWallets();updateFlowUI();const d=document.getElementById('flowDate');if(d)d.value=today();},100);
+</script>
+
+
+<script>
+function populateFlowWallets(){
+  const from=document.getElementById('flowWallet'), to=document.getElementById('flowToWallet');
+  if(!from||!to)return;
+  const wallets=Array.isArray(db.wallets)?db.wallets:[];
+  const options=wallets.map(w=>`<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+  from.innerHTML=options; to.innerHTML=options;
+  if(wallets.length>1)to.value=wallets[1].id;
+}
+function updateFlowUI(){
+  const type=document.getElementById('flowType')?.value;
+  const to=document.getElementById('flowToWallet');
+  if(to)to.style.display=type==='transfer'?'block':'none';
+  const btn=document.getElementById('addFlowBtn');
+  if(btn)btn.textContent=type==='transfer'?'Transfer Money':'Add Money Flow';
+}
+document.getElementById('flowType')?.addEventListener('change',updateFlowUI);
+document.getElementById('addFlowBtn')?.addEventListener('click',()=>{
+  const type=document.getElementById('flowType').value;
+  const amount=Number(document.getElementById('flowAmount').value);
+  const fromId=document.getElementById('flowWallet').value;
+  const toId=document.getElementById('flowToWallet').value;
+  const note=document.getElementById('flowNote').value.trim();
+  const date=document.getElementById('flowDate').value||today();
+  const msg=document.getElementById('flowMessage');
+  if(!amount||amount<=0){msg.textContent='Enter a valid amount.';return;}
+  if(!fromId){msg.textContent='Add a wallet/account first.';return;}
+  const from=db.wallets.find(w=>String(w.id)===String(fromId));
+  if(!from){msg.textContent='Wallet not found.';return;}
+  if(type==='transfer'){
+    if(!toId||String(toId)===String(fromId)){msg.textContent='Choose a different destination wallet.';return;}
+    const toWallet=db.wallets.find(w=>String(w.id)===String(toId));
+    if(!toWallet){msg.textContent='Destination wallet not found.';return;}
+    if((Number(from.balance)||0)<amount){msg.textContent='Not enough balance in the source wallet.';return;}
+    from.balance=(Number(from.balance)||0)-amount;
+    toWallet.balance=(Number(toWallet.balance)||0)+amount;
+    db.walletTransactions=db.walletTransactions||[];
+    db.walletTransactions.push({id:Date.now(),date,type:'transfer',from:from.id,to:toWallet.id,amount,note});
+    msg.textContent=`Transferred ${money(amount)} from ${from.name} to ${toWallet.name}.`;
+  }else{
+    const sign=type==='expense'?-1:1;
+    if(type==='expense'&&(Number(from.balance)||0)<amount){msg.textContent='Not enough balance for this expense.';return;}
+    from.balance=(Number(from.balance)||0)+(sign*amount);
+    db.money=db.money||[];
+    db.money.push({id:Date.now(),date,type:type==='expense'?'expense':'income',amount,note:note||(type==='deposit'?'Deposit':'Income / Receive'),walletId:from.id});
+    db.walletTransactions=db.walletTransactions||[];
+    db.walletTransactions.push({id:Date.now()+1,date,type,walletId:from.id,amount,note});
+    msg.textContent=`${type==='expense'?'Spent':'Added'} ${money(amount)} ${type==='deposit'?'as a deposit':''}.`;
+  }
+  save();renderAll();populateFlowWallets();
+  document.getElementById('flowAmount').value='';
+  document.getElementById('flowNote').value='';
+  document.getElementById('flowDate').value=today();
+});
+setTimeout(()=>{populateFlowWallets();updateFlowUI();const d=document.getElementById('flowDate');if(d)d.value=today();},100);
 </script>
 
 <script>
